@@ -5,70 +5,92 @@ var escomplex = require('escomplex-js');
 var merge = require('merge');
 
 var DEFAULT_OPTIONS = {
-  maxfiles: 1024,
-  forin: false,
-  trycatch: false,
-  newmi: false
+  'include-for-in': false,
+  'include-try-catch': false,
+  'ms-maintainability-index': false
 };
 
-function beginsWithShebang(source) {
-  return source[0] === '#' && source[1] === '!';
+function isNumber(value) {
+  return value && typeof value === 'number';
 }
 
 function testThreshold(threshold, metric) {
-  return !isNaN(threshold) && metric <= threshold;
+  return !threshold || (isNumber(threshold) && metric <= threshold);
 }
 
 function validModuleOptions(options) {
-  return !isNaN(options.minmi);
+  return isNumber(options['maintainability-index']);
 }
 
-function testModule(options, report) {
-  return testThreshold(options.minmi, report.maintainability);
+function testModule(report, options) {
+  report.success = testThreshold(
+    options['maintainability-index'], report.maintainability
+  );
 }
 
 function validFunctionOptions(options) {
-  return !(
-    isNaN(options.maxcyc) ||
-    isNaN(options.maxcycden) ||
-    isNaN(options.maxhd) ||
-    isNaN(options.maxhv) ||
-    isNaN(options.maxhe)
-  );
-}
-
-function testFunctions(report, options) {
-  for (var i = 0; i < report.functions.length; i++) {
-    if (!testFunction(options, report.functions[i])) {
-      return false;
-    }
-  }
-  return true;
-}
-
-function testFunction(func, options) {
   return (
-    testThreshold(options.maxcyc, func.cyclomatic) &&
-    testThreshold(options.maxcycden, func.cyclomaticDensity) &&
-    testThreshold(options.maxhd, func.halstead.difficulty) &&
-    testThreshold(options.maxhv, func.halstead.volume) &&
-    testThreshold(options.maxhe, func.halstead.effort)
+    isNumber(options.cyclomatic) ||
+    isNumber(options['cyclomatic-density']) ||
+    isNumber(options['halstead-difficulty']) ||
+    isNumber(options['halstead-volume']) ||
+    isNumber(options['halstead-effort'])
   );
+}
+
+function testFunction(report, options) {
+  return (
+    testThreshold(options.cyclomatic, report.cyclomatic) &&
+    testThreshold(options['cyclomatic-density'], report.cyclomaticDensity) &&
+    testThreshold(options['halstead-difficulty'], report.halstead.difficulty) &&
+    testThreshold(options['halstead-volume'], report.halstead.volume) &&
+    testThreshold(options['halstead-effort'], report.halstead.effort)
+  );
+}
+
+function testFunctions(reports, options) {
+  reports.forEach(function (report) {
+    report.success = testFunction(report, options);
+  });
 }
 
 function validProjectOptions(options) {
-  return !(
-    isNaN(options.maxfod) ||
-    isNaN(options.maxcost) ||
-    isNaN(options.maxsize)
+  return (
+    isNumber(options['first-order-density']) ||
+    isNumber(options['change-cost']) ||
+    isNumber(options['core-size'])
   );
 }
 
-function testProject(options, result) {
+function testProject(report, options) {
   return (
-    testThreshold(options.maxfod, result.firstOrderDensity) &&
-    testThreshold(options.maxcost, result.changeCost) &&
-    testThreshold(options.maxsize, result.coreSize)
+    testThreshold(options['first-order-density'], report.firstOrderDensity) &&
+    testThreshold(options['change-cost'], report.changeCost) &&
+    testThreshold(options['core-size'], report.coreSize)
+  );
+}
+
+function analyse(sourcePaths, options) {
+  var sources = [];
+  sourcePaths.forEach(function (sourcePath) {
+    var source = fs.readFileSync(sourcePath, {encoding: 'utf8'});
+    if (!source.indexOf('#!')) {
+      source = '//' + source;
+    }
+    sources.push({
+      path: sourcePath,
+      code: source
+    });
+  });
+
+  return escomplex.analyse(
+    sources, {
+      logicalor: options['ignore-or'],
+      switchcase: options['ignore-switch'],
+      forin: options['include-for-in'],
+      trycatch: options['try-catch'],
+      newmi: options['ms-maintainability-index']
+    }
   );
 }
 
@@ -77,43 +99,23 @@ function check(complexity, options) {
   var validFunctions = validFunctionOptions(options);
 
   complexity.reports.forEach(function (report) {
-    report.success = (
-      (validModules && testModule(report, options)) ||
-      (validFunctions && testFunctions(report, options))
-    );
+    if (validModules) {
+      testModule(report, options);
+    }
+    if (validFunctions) {
+      testFunctions(report.functions, options);
+    }
   });
 
-  complexity.success = (
-    validProjectOptions(options) && testProject(complexity, options)
-  );
+  if (validProjectOptions(options)) {
+    testProject(complexity, options);
+  }
 
   return complexity;
 }
 
-function analyse(sourcePaths, options) {
-  var sources = [];
-  sourcePaths.forEach(function (sourcePath) {
-    var source = fs.readFileSync(sourcePath);
-    if (beginsWithShebang(source)) {
-      source = '//' + source;
-    }
-    sources.push({
-      path: sourcePath,
-      source: source
-    });
-  });
-
-  var escomplexOptions = {
-    logicalor: options.logicalor,
-    switchcase: options.switchcase,
-    forin: options.forin,
-    trycatch: options.trycatch,
-    newmi: options.newmi
-  };
-  return escomplex.analyse(sources, options);
-}
-
 module.exports = function (sourcePaths, options) {
-  return check(analyse(sourcePaths, merge(DEFAULT_OPTIONS, options)));
+  options = merge(DEFAULT_OPTIONS, options);
+  return check(analyse(sourcePaths, options), options);
 };
 

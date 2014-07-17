@@ -6,6 +6,7 @@
     "node-complexity": "bin/node-complexity.js"
   },
   "dependencies": {
+    "commander": "^2.3.0",
     "escomplex-js": "0.1.2",
     "merge": "1.1.3"
   },
