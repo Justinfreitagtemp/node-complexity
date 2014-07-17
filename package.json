@@ -1,0 +1,40 @@
+{
+  "name": "node-complexity",
+  "version": "0.0.1",
+  "description": "A convenience wrapper around the escomplex complexity analysis tool for Node.js",
+  "bin": {
+    "node-complexity": "bin/node-complexity.js"
+  },
+  "dependencies": {
+    "escomplex-js": "0.1.2",
+    "merge": "1.1.3"
+  },
+  "devDependencies": {
+    "gulp": "3.8.6"
+  },
+  "engines": {
+    "node": ">= 0.10.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git@github.com:justinfreitag/node-complexity.git"
+  },
+  "homepage": "https://github.com/justinfreitag/node-complexity",
+  "bugs": {
+    "url": "https://github.com/justinfreitag/node-complexity/issues"
+  },
+  "keywords": [
+    "complexity",
+    "cyclomatic",
+    "halstead",
+    "maintainability",
+    "analysis",
+    "metrics",
+    "escomplex"
+  ],
+  "author": {
+    "name": "Justin Fretiag",
+    "email": "justin.freitag@gmail.com"
+  },
+  "license": "MIT"
+}
