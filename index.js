@@ -15,7 +15,8 @@ function isNumber(value) {
 }
 
 function testThreshold(threshold, metric) {
-  return !threshold || (isNumber(threshold) && metric <= threshold);
+  /* jshint eqnull: true */
+  return threshold != null && (isNumber(threshold) && metric <= threshold);
 }
 
 function validModuleOptions(options) {
