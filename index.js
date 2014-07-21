@@ -2,50 +2,39 @@
 
 var fs = require('fs');
 var escomplex = require('escomplex-js');
-var merge = require('merge');
-
-var DEFAULT_OPTIONS = {
-  'include-for-in': false,
-  'include-try-catch': false,
-  'ms-maintainability-index': false
-};
-
-function isNumber(value) {
-  return value && typeof value === 'number';
-}
 
 function testThreshold(threshold, metric) {
   /* jshint eqnull: true */
-  return threshold != null && (isNumber(threshold) && metric <= threshold);
+  return threshold != null && (metric <= threshold);
 }
 
 function validModuleOptions(options) {
-  return isNumber(options['maintainability-index']);
+  return options.maintainabilityIndex !== undefined;
 }
 
 function testModule(report, options) {
   report.success = testThreshold(
-    options['maintainability-index'], report.maintainability
+    options.maintainabilityIndex, report.maintainability
   );
 }
 
 function validFunctionOptions(options) {
   return (
-    isNumber(options.cyclomatic) ||
-    isNumber(options['cyclomatic-density']) ||
-    isNumber(options['halstead-difficulty']) ||
-    isNumber(options['halstead-volume']) ||
-    isNumber(options['halstead-effort'])
+    options.cyclomatic ||
+    options.cyclomaticDensity ||
+    options.halsteadDifficulty ||
+    options.halsteadVolume ||
+    options.halsteadEffort
   );
 }
 
 function testFunction(report, options) {
   return (
     testThreshold(options.cyclomatic, report.cyclomatic) &&
-    testThreshold(options['cyclomatic-density'], report.cyclomaticDensity) &&
-    testThreshold(options['halstead-difficulty'], report.halstead.difficulty) &&
-    testThreshold(options['halstead-volume'], report.halstead.volume) &&
-    testThreshold(options['halstead-effort'], report.halstead.effort)
+    testThreshold(options.cyclomaticDensity, report.cyclomaticDensity) &&
+    testThreshold(options.halsteadDifficulty, report.halstead.difficulty) &&
+    testThreshold(options.halsteadVolume, report.halstead.volume) &&
+    testThreshold(options.halsteadEffort, report.halstead.effort)
   );
 }
 
@@ -57,17 +46,17 @@ function testFunctions(reports, options) {
 
 function validProjectOptions(options) {
   return (
-    isNumber(options['first-order-density']) ||
-    isNumber(options['change-cost']) ||
-    isNumber(options['core-size'])
+    options.firstOrderDensity ||
+    options.changeCost ||
+    options.coreSize
   );
 }
 
 function testProject(report, options) {
   return (
-    testThreshold(options['first-order-density'], report.firstOrderDensity) &&
-    testThreshold(options['change-cost'], report.changeCost) &&
-    testThreshold(options['core-size'], report.coreSize)
+    testThreshold(options.firstOrderDensity, report.firstOrderDensity) &&
+    testThreshold(options.changeCost, report.changeCost) &&
+    testThreshold(options.coreSize, report.coreSize)
   );
 }
 
@@ -86,11 +75,11 @@ function analyse(sourcePaths, options) {
 
   return escomplex.analyse(
     sources, {
-      logicalor: options['ignore-or'],
-      switchcase: options['ignore-switch'],
-      forin: options['include-for-in'],
-      trycatch: options['try-catch'],
-      newmi: options['ms-maintainability-index']
+      logicalor: options.ignoreOr,
+      switchcase: options.ignoreSwitch,
+      forin: options.includeForIn,
+      trycatch: options.includeTryCatch,
+      newmi: options.msMaintainabilityIndex
     }
   );
 }
@@ -116,7 +105,6 @@ function check(complexity, options) {
 }
 
 module.exports = function (sourcePaths, options) {
-  options = merge(DEFAULT_OPTIONS, options);
   return check(analyse(sourcePaths, options), options);
 };
 
